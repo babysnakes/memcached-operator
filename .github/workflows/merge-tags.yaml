@@ -1,0 +1,28 @@
+# Tag action docs:
+#  https://github.com/marketplace/actions/github-tag-with-tags-filter
+#
+# Commits syntax:
+#  https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#commits
+#
+# default bump is patch
+# for minor bump start your comment with `fix:`
+# for major bump start your body (below the commit title and empty line) with:
+# `BREAKING CHANGE:`
+
+name: Bump version on merge
+on:
+  push:
+    branches:
+      - master
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          create_annotated_tag: true
