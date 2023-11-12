@@ -11,18 +11,26 @@
 
 name: Bump version on merge
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
       - master
       - main
 jobs:
   build:
-    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
       - name: Bump version and push tag
         id: tag_version
-        uses: mathieudutour/github-tag-action@v6.0
+        uses: anothrNick/github-tag-action@1.64.0 # Don't use @master or @v1 unless you're happy to test the latest version
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          create_annotated_tag: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: true
+          DEFAULT_BUMP: patch
