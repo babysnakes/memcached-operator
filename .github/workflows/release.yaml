@@ -1,7 +1,11 @@
 # Tag action docs:
 #  https://github.com/marketplace/actions/github-tag-bump
 
-name: Bump version on merge
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+name: Release docker image on merge
 on:
   pull_request:
     types:
@@ -15,8 +19,10 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
+      packages: write
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.merge_commit_sha }}
           fetch-depth: '0'
@@ -26,4 +32,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
           DEFAULT_BUMP: patch
-          GIT_API_TAGGING: false # we need cli push to trigger docker build
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
