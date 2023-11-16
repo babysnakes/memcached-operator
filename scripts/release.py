@@ -1,22 +1,6 @@
 #!/usr/bin/env python3
 
-import argparse
 import subprocess
-
-parser = argparse.ArgumentParser(
-    prog="Release",
-    description="Bump version (tag) according to 'level' and create github release",
-    epilog="IMPORTANT: This script assumes you have both 'git' and 'gh' "
-           "configured and running correctly on your machine",
-)
-parser.add_argument('level', choices=['major', 'minor', 'patch'])
-parser.add_argument(
-    '--dry-run',
-    help='Do not create release + tag on github, Just print the version that would have been created',
-    action=argparse.BooleanOptionalAction,
-    dest='dry',
-    default=False
-)
 
 
 class SemanticVersion:
@@ -44,9 +28,7 @@ class SemanticVersion:
     @classmethod
     def from_string(cls, version: str):
         try:
-            major, minor, patch = \
-                [int(x) for x in
-                 version.replace("v", "", 1).split(".", 2)]
+            major, minor, patch = map(int, version.lstrip('v').split('.', 2))
             return cls(major, minor, patch)
         except Exception as err:
             raise Exception(f"Error parsing '{version}' as semantic version: {err}")
@@ -87,7 +69,22 @@ def run(args):
 
 if __name__ == "__main__":
     import sys
+    import argparse
 
+    parser = argparse.ArgumentParser(
+        prog="Release",
+        description="Bump version (tag) according to 'level' and create github release",
+        epilog="IMPORTANT: This script assumes you have both 'git' and 'gh' "
+               "configured and running correctly on your machine",
+    )
+    parser.add_argument('level', choices=['major', 'minor', 'patch'])
+    parser.add_argument(
+        '--dry-run',
+        help='Do not create release + tag on github, Just print the version that would have been created',
+        action=argparse.BooleanOptionalAction,
+        dest='dry',
+        default=False
+    )
     args = parser.parse_args()
     try:
         run(args)
