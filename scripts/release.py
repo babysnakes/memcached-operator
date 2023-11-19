@@ -2,6 +2,8 @@
 
 import subprocess
 
+DEFAULT_NOTES = 'release-notes.md.tmpl'
+
 
 class SemanticVersion:
     """
@@ -42,8 +44,23 @@ def extract_tag():
     return latest_tag.stdout.rstrip().decode()
 
 
-def mk_release(ver):
-    subprocess.run(["gh", "release", 'create', '-n', '', '-t', f"Release: {ver}", f"{ver}"])
+def mk_release(ver: SemanticVersion, notes_file: str, dry_run: bool):
+    notes_params = ['-F', notes_file] if notes_file else ['-F', DEFAULT_NOTES]
+
+    cmd = ["gh", "release", 'create', '-n', ''] + notes_params + ['-t', f"Release: {ver}", f"{ver}"]
+    if dry_run:
+        print(f"DRY RUN: would create release with version: {ver}")
+        print(f"DRY RUN: would run: {cmd}")
+    else:
+        subprocess.run(cmd)
+        print("")
+        print('A new release + tag were created on github. Please make sure to pull the changes locally '
+              'and verify that docker image is building.')
+        if not notes_file:
+            print('')
+            print('No notes file provided. Opening release in web browser to edit...')
+            input('Print ENTER to exit ')
+            subprocess.run(['gh', 'release', 'view', '-w', str(ver)])
 
 
 def run(args):
@@ -58,13 +75,8 @@ def run(args):
             ver.bump_patch()
         case _:
             raise Exception("No level supplied")
-    if args.dry:
-        print(f"DRY RUN: would create release with version: {ver}")
-    else:
-        mk_release(ver)
-        print("")
-        print('A new release + tag were created on github. Please make sure to pull the changes locally '
-              'and verify that docker image is building.')
+
+    mk_release(ver, args.notes, args.dry)
 
 
 if __name__ == "__main__":
@@ -73,7 +85,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         prog="Release",
-        description="Bump version (tag) according to 'level' and create github release",
+        description='Bump version (tag) according to \'level\' and create github release. '
+                    f"Copy and edit '{DEFAULT_NOTES}' to add release notes, otherwise we will open a browser to "
+                    'manually edit.',
         epilog="IMPORTANT: This script assumes you have both 'git' and 'gh' "
                "configured and running correctly on your machine",
     )
@@ -84,6 +98,11 @@ if __name__ == "__main__":
         action=argparse.BooleanOptionalAction,
         dest='dry',
         default=False
+    )
+    parser.add_argument(
+        '-F', '--notes-file',
+        help='Markdown file containing release notes',
+        dest='notes'
     )
     args = parser.parse_args()
     try:
